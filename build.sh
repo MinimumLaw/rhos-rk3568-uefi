@@ -106,6 +106,10 @@ for board in ${RKUEFIBOARDS}; do
 		build_uefi OrangePi OrangePi3B
 		build_fit OrangePi3B rk3566-orangepi-3b
 		;;
+	RK3568-RHOS)
+		build_uefi Ravion RK3568-RHOS
+		build_fit RK3568-RHOS rk3568-rhos-kitsbimx8
+		;;
 	PINETAB2)
 		build_uefi Pine64 PineTab2
 		build_fit PineTab2 rk3566-pinetab2

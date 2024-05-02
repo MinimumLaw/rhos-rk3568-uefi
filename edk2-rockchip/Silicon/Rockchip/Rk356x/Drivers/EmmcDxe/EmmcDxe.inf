@@ -48,6 +48,7 @@
 [Pcd]
   gRk356xTokenSpaceGuid.PcdEmmcDxeBaseAddress
   gRk356xTokenSpaceGuid.PcdEmmcForceHighSpeed
+  gRk356xTokenSpaceGuid.PcdMshcDxeMaxClockFreqInHz
 
 [Depex]
   TRUE

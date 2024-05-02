@@ -213,6 +213,12 @@ EmmcSdMmcNotifyPhase (
       break;
     }
 
+    /* FixUp SD/eMMC speed based on SD-card maximum speed  */
+    if ((PcdGet32 (PcdMshcDxeMaxClockFreqInHz) != 0) &&
+      (MaxClockFreq > PcdGet32 (PcdMshcDxeMaxClockFreqInHz))) {
+     MaxClockFreq = PcdGet32 (PcdMshcDxeMaxClockFreqInHz);
+    }
+
     CruSetEmmcClockRate(MaxClockFreq);
 
     if (MaxClockFreq <= 52000000UL) {
