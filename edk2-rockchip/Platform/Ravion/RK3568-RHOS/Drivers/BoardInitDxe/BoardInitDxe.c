@@ -86,29 +86,8 @@
 #define PMU_NOC_AUTO_CON1                     (PMU_BASE + 0x0074)
 
 STATIC CONST GPIO_IOMUX_CONFIG mSdmmc0IomuxConfig[] = {
-  { "sdmmc0_d0",        1, GPIO_PIN_PD5, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-  { "sdmmc0_d1",        1, GPIO_PIN_PD6, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-  { "sdmmc0_d2",        1, GPIO_PIN_PD7, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-  { "sdmmc0_d3",        2, GPIO_PIN_PA0, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-  { "sdmmc0_cmd",       2, GPIO_PIN_PA1, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-  { "sdmmc0_clk",       2, GPIO_PIN_PA2, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
   { "sdmmc0_pwr", 	2, GPIO_PIN_PB0, 0, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
   { "sdmmc0_1v8en", 	2, GPIO_PIN_PB7, 0, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-};
-
-STATIC CONST GPIO_IOMUX_CONFIG mEmmcIomuxConfig[] = {
-  { "emmc_d0",        1, GPIO_PIN_PB4, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-  { "emmc_d1",        1, GPIO_PIN_PB5, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-  { "emmc_d2",        1, GPIO_PIN_PB6, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-  { "emmc_d3",        1, GPIO_PIN_PB7, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-  { "emmc_d4",        1, GPIO_PIN_PC0, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-  { "emmc_d5",        1, GPIO_PIN_PC1, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-  { "emmc_d6",        1, GPIO_PIN_PC2, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-  { "emmc_d7",        1, GPIO_PIN_PC3, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-  { "emmc_rstn",      1, GPIO_PIN_PC7, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-  { "emmc_cmd",       1, GPIO_PIN_PC4, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-  { "emmc_clk",       1, GPIO_PIN_PC5, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
-  { "emmc_dsk",       1, GPIO_PIN_PC6, 1, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
 };
 
 STATIC CONST GPIO_IOMUX_CONFIG mPcie30x2IomuxConfig[] = {
@@ -124,12 +103,6 @@ STATIC CONST GPIO_IOMUX_CONFIG mPcie20IomuxConfig[] = {
   { "pcie20_wakenm2",   1, GPIO_PIN_PB1, 4, GPIO_PIN_PULL_NONE, GPIO_PIN_DRIVE_DEFAULT },
   { "pcie20_clkreqsoc", 1, GPIO_PIN_PA4, 0, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2       },   /* GPIO */
 };
-
-STATIC CONST GPIO_IOMUX_CONFIG mI2C0IomuxConfig[] = {
-  { "i2c0_scl", 0, GPIO_PIN_PB1, 1, GPIO_PIN_PULL_NONE, GPIO_PIN_INPUT_SCHMITT },
-  { "i2c0_sda", 0, GPIO_PIN_PB2, 1, GPIO_PIN_PULL_NONE, GPIO_PIN_INPUT_SCHMITT },
-};
-
 
 STATIC
 VOID
@@ -199,8 +172,6 @@ BoardInitPmic (
   UINT8 Value;
 
   DEBUG ((DEBUG_INFO, "BOARD: PMIC init\n"));
-
-  GpioSetIomuxConfig (mI2C0IomuxConfig, ARRAY_SIZE(mI2C0IomuxConfig));
 
   Status = PmicRead (PMIC_CHIP_NAME, &Value);
   if (EFI_ERROR (Status)) {
@@ -274,11 +245,8 @@ BoardInitDriverEntryPoint (
   MultiPhySetMode (0, MULTIPHY_MODE_USB3);
   MultiPhySetMode (1, MULTIPHY_MODE_USB3);
 
-  /* SD-card setup */
+  /* SD-card setup - ToDo: set correct value for SD_PEN and SD_1V8EN  */
   GpioSetIomuxConfig (mSdmmc0IomuxConfig, ARRAY_SIZE (mSdmmc0IomuxConfig));
-
-  /* eMMC setup */
-  GpioSetIomuxConfig (mEmmcIomuxConfig, ARRAY_SIZE (mEmmcIomuxConfig));
 
   /* PCIe setup */
   BoardInitPcie ();

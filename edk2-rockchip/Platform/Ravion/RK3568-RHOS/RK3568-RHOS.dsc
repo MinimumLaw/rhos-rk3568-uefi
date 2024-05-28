@@ -471,8 +471,8 @@
   gEmbeddedTokenSpaceGuid.PcdPrePiCpuIoSize|34
 
   gEfiMdePkgTokenSpaceGuid.PcdPciIoTranslation|0x00000003BFFF0000
-  gRk356xTokenSpaceGuid.PcdPcieResetGpioBank|2
-  gRk356xTokenSpaceGuid.PcdPcieResetGpioPin|30
+  gRk356xTokenSpaceGuid.PcdPcieResetGpioBank|4
+  gRk356xTokenSpaceGuid.PcdPcieResetGpioPin|20
   gRk356xTokenSpaceGuid.PcdPciePowerGpioBank|0
   gRk356xTokenSpaceGuid.PcdPciePowerGpioPin|28
   gRk356xTokenSpaceGuid.PcdPcieLinkSpeed|0x3
