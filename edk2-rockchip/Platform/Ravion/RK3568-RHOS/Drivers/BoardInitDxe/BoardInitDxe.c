@@ -32,6 +32,31 @@
 #include <IndustryStandard/Rk356x.h>
 #include <IndustryStandard/Rk356xCru.h>
 
+#include "EthernetPhy.h"
+
+/*
+ * GMAC registers
+ */
+#define GMAC1_MAC_ADDRESS0_LOW  (GMAC1_BASE + 0x0304)
+#define GMAC1_MAC_ADDRESS0_HIGH (GMAC1_BASE + 0x0300)
+
+#define GRF_MAC1_CON0           (SYS_GRF + 0x0388)
+#define  CLK_RX_DL_CFG_SHIFT    8
+#define  CLK_TX_DL_CFG_SHIFT    0
+#define GRF_MAC1_CON1           (SYS_GRF + 0x038C)
+#define  PHY_INTF_SEL_SHIFT     4
+#define  PHY_INTF_SEL_MASK      (0x7U << PHY_INTF_SEL_SHIFT)
+#define  PHY_INTF_SEL_RGMII     (1U << PHY_INTF_SEL_SHIFT)
+#define  FLOWCTRL               BIT3
+#define  MAC_SPEED              BIT2
+#define  RXCLK_DLY_ENA          BIT1
+#define  TXCLK_DLY_ENA          BIT0
+
+#define TX_DELAY_GMAC0          0x3C
+#define RX_DELAY_GMAC0          0x2F
+#define TX_DELAY_GMAC1          0x4F
+#define RX_DELAY_GMAC1          0x26
+
 /*
  * PMIC registers
 */
@@ -103,6 +128,83 @@ STATIC CONST GPIO_IOMUX_CONFIG mPcie20IomuxConfig[] = {
   { "pcie20_wakenm2",   1, GPIO_PIN_PB1, 4, GPIO_PIN_PULL_NONE, GPIO_PIN_DRIVE_DEFAULT },
   { "pcie20_clkreqsoc", 1, GPIO_PIN_PA4, 0, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2       },   /* GPIO */
 };
+
+STATIC CONST GPIO_IOMUX_CONFIG mGmac1IomuxConfig[] = {
+  /* gmac1m1_miim */
+  { "gmac1_mdcm1",        4, GPIO_PIN_PB6, 3, GPIO_PIN_PULL_NONE, GPIO_PIN_DRIVE_DEFAULT },
+  { "gmac1_mdiom1",       4, GPIO_PIN_PB7, 3, GPIO_PIN_PULL_NONE, GPIO_PIN_DRIVE_DEFAULT },
+  /* gmac1m1_tx_bus2 */
+  { "gmac1_txd0m1",       4, GPIO_PIN_PA4, 3, GPIO_PIN_PULL_NONE, GPIO_PIN_DRIVE_2 },
+  { "gmac1_txd1m1",       4, GPIO_PIN_PA5, 3, GPIO_PIN_PULL_NONE, GPIO_PIN_DRIVE_2 },
+  { "gmac1_txenm1",       4, GPIO_PIN_PA6, 3, GPIO_PIN_PULL_NONE, GPIO_PIN_DRIVE_DEFAULT },
+  /* gmac1m1_rx_bus2 */
+  { "gmac1_rxd0m1",       4, GPIO_PIN_PA7, 3, GPIO_PIN_PULL_NONE, GPIO_PIN_DRIVE_DEFAULT },
+  { "gmac1_rxd1m1",       4, GPIO_PIN_PB0, 3, GPIO_PIN_PULL_NONE, GPIO_PIN_DRIVE_DEFAULT },
+  { "gmac1_rxdvcrsm1",    4, GPIO_PIN_PB1, 3, GPIO_PIN_PULL_NONE, GPIO_PIN_DRIVE_DEFAULT },
+  /* gmac1m1_rgmii_clk */
+  { "gmac1_rxclkm1",      4, GPIO_PIN_PA3, 3, GPIO_PIN_PULL_NONE, GPIO_PIN_DRIVE_DEFAULT },
+  { "gmac1_txclkm1",      4, GPIO_PIN_PA0, 3, GPIO_PIN_PULL_NONE, GPIO_PIN_DRIVE_1 },
+  /* gmac1m1_rgmii_bus */
+  { "gmac1_rxd2m1",       4, GPIO_PIN_PA1, 3, GPIO_PIN_PULL_NONE, GPIO_PIN_DRIVE_DEFAULT },
+  { "gmac1_rxd3m1",       4, GPIO_PIN_PA2, 3, GPIO_PIN_PULL_NONE, GPIO_PIN_DRIVE_DEFAULT },
+  { "gmac1_txd2m1",       3, GPIO_PIN_PD6, 3, GPIO_PIN_PULL_NONE, GPIO_PIN_DRIVE_2 },
+  { "gmac1_txd3m1",       3, GPIO_PIN_PD7, 3, GPIO_PIN_PULL_NONE, GPIO_PIN_DRIVE_2 },
+  /* phy-reset */
+  { "gmac1_phy-reset",    3, GPIO_PIN_PB0, 0, GPIO_PIN_PULL_UP,   GPIO_PIN_DRIVE_2 },
+};
+
+STATIC
+VOID
+BoardInitGmac (
+  VOID
+  )
+{
+  UINT32 MacLo, MacHi;
+
+  /* Assert reset */
+  CruAssertSoftReset (14, 12); // GMAC1
+
+  /* Select M1 mux solution for GMAC1 */
+  MmioWrite32 (GRF_IOFUNC_SEL0, (GMAC1_IOMUX_SEL << 16) | GMAC1_IOMUX_SEL);
+
+  /* Configure pins */
+  GpioSetIomuxConfig (mGmac1IomuxConfig, ARRAY_SIZE (mGmac1IomuxConfig));
+
+  /* Setup GMAC1 clocks */
+  MmioWrite32 (CRU_CLKSEL_CON (33), 0x00370004);  // Set rmii1_mode to rgmii mode
+                                                  // Set rgmii1_clk_sel to 125M
+                                                  // Set rmii1_extclk_sel to mac1 clock from IO
+
+  /* Configure GMAC1 */
+  MmioWrite32 (GRF_MAC1_CON0,
+               0x7F7F0000U |
+               (TX_DELAY_GMAC1 << CLK_TX_DL_CFG_SHIFT) |
+               (RX_DELAY_GMAC1 << CLK_RX_DL_CFG_SHIFT));
+  MmioWrite32 (GRF_MAC1_CON1,
+               ((PHY_INTF_SEL_MASK | TXCLK_DLY_ENA | RXCLK_DLY_ENA) << 16) |
+               PHY_INTF_SEL_RGMII |
+               TXCLK_DLY_ENA |
+               RXCLK_DLY_ENA);
+
+  /* Reset GMAC1 PHY */
+  MicroSecondDelay (1000);
+  GpioPinWrite (3, GPIO_PIN_PB0, 0);
+  MicroSecondDelay (20000);
+  GpioPinWrite (3, GPIO_PIN_PB0, 1);
+  MicroSecondDelay (100000);
+
+  /* Deassert reset */
+  CruDeassertSoftReset (14, 12); // GMAC1
+
+  /* Generate MAC addresses from the first 32 bytes in the OTP and write it to GMAC0 and GMAC1 */
+  OtpGetMacAddress (&MacLo, &MacHi);
+
+  MacHi |= 1 << 8;
+  MmioWrite32 (GMAC1_MAC_ADDRESS0_LOW, MacLo);
+  MmioWrite32 (GMAC1_MAC_ADDRESS0_HIGH, MacHi);
+
+  EthernetPhyInit (GMAC1_BASE);
+}
 
 STATIC
 VOID
@@ -250,6 +352,9 @@ BoardInitDriverEntryPoint (
 
   /* PCIe setup */
   BoardInitPcie ();
+
+  /* GMAC setup */
+  BoardInitGmac ();
 
   return EFI_SUCCESS;
 }
